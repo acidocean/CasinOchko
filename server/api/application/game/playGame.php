@@ -43,6 +43,38 @@ class playGame {
         return self::getGameState($player, $dealer, $deck);
     }
 
+     /**
+     * Ход игрока: взять карту (Hit)
+     * 
+     * @param Player $player Игрок
+     * @param Dealer $dealer Дилер
+     * @param Deck $deck Колода
+     * @return array Текущее состояние игры
+     */
+    public static function playerHit(Player $player, Dealer $dealer, Deck $deck)
+{
+    // Игрок берёт карту
+    $player->addCard($deck->draw());
+
+    // Проверяем перебор
+    if (gameLogic::isBust($player->cards)) { 
+        return [
+            'message' => "Перебор! Игрок проиграл.",
+            'playerCards' => array_map(function($c){
+                return ['suit'=>$c->suit,'rank'=>$c->rank,'value'=>$c->value];
+            }, $player->cards),
+            'playerScore' => $player->getScore(),
+            'dealerCards' => array_map(function($c){
+                return ['suit'=>$c->suit,'rank'=>$c->rank,'value'=>$c->value];
+            }, $dealer->cards)
+        ];
+    }
+
+    return self::getGameState($player, $dealer, $deck);
+}
+
+
+
     /**
      * Получение текущего состояния игры
      *
@@ -85,4 +117,37 @@ class playGame {
         ];
     }
 
+}
+if (isset($_GET['test'])) {
+    require_once 'Card.php';
+    require_once 'Deck.php';
+    require_once 'Player.php';
+    require_once 'Dealer.php';
+    require_once 'gameLogic.php';
+
+    $deck   = new Deck();
+    $player = new Player("Игрок");
+    $dealer = new Dealer("Дилер");
+
+    $method = $_GET['method'] ?? null;
+    $result = [];
+
+    switch ($method) {
+        case 'startNewGame':
+            $result = playGame::startNewGame($player, $dealer, $deck);
+            break;
+
+        case 'playerHit':
+            // Для теста можно сначала раздать карты
+            playGame::startNewGame($player, $dealer, $deck);
+            $result = playGame::playerHit($player, $dealer, $deck);
+            break;
+
+        default:
+            $result = ['error'=>"Метод $method не реализован"];
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
 }
